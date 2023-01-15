@@ -24,8 +24,9 @@ class TestModel:
         model = Model(_data_path=self.data_path)
         model.save()
         assert model._data.shape[0] == 1
+        model = Model(_data_path=self.data_path)
         model.save()
-        assert model._data.shape[0] == 2
+        assert model._data.shape[0] == 1  # date is the same, so no new row
 
     def test_update(self):
         model = Model(_data_path=self.data_path)
@@ -34,11 +35,20 @@ class TestModel:
 
         model.mc_donalds = 10
         model.update()
-        assert model._data.shape[0] == 2
+        assert model._data.shape[0] == 1
         assert model._data.iloc[-1]["mc_donalds"] == 10
 
     def test_load_data(self):
         model = Model(_data_path=self.data_path, mc_donalds=10)
         model.save()
         model2 = Model(_data_path=self.data_path)
+        assert model2.mc_donalds == 10
+
+    def test_change_data(self):
+        model = Model(
+            _data_path=self.data_path, mc_donalds=10, date=datetime.date(2020, 1, 2)
+        )
+        model.save()
+        model2 = Model(_data_path=self.data_path)
+        model2.change_date(datetime.date(2020, 1, 2))
         assert model2.mc_donalds == 10
