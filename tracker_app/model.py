@@ -5,6 +5,12 @@ from pathlib import Path
 from dataclasses import dataclass
 from logging import Logger
 
+"""
+TODO 
+1. Add validation rules for each field.
+2. Add github actions for testing.
+"""
+
 
 @dataclass
 class Model:
@@ -42,16 +48,27 @@ class Model:
     date: datetime.date = datetime.datetime.now().date()
     work_time: int = 0
     study_time: int = 0
-    sleep_time: float = 8.0
+    sleep_time: float = 0
     mc_donalds: int = 0
     gym: bool = False
     energy_drinks: int = 0
     bad_habits: int = 0
-    overall_score: int = 3
+    overall_score: int = 0
 
     def __post_init__(self):
         self._data = self.__load_data(self._data_path)
         self.__set_initial_values()
+
+    def __reset_values(self) -> None:
+        """temporary solution"""
+        self.work_time = 0
+        self.study_time = 0
+        self.sleep_time = 0
+        self.mc_donalds = 0
+        self.gym = False
+        self.energy_drinks = 0
+        self.bad_habits = 0
+        self.overall_score = 0
 
     def save(self) -> None:
         self.update()
@@ -83,10 +100,14 @@ class Model:
             )
         except IndexError:
             self._logger.warning("No rows from today. Setting initial values.")
+            self.__reset_values()
+            # reset values to 0
             return
         self._logger.warning("Last row is from today. Setting initial values.")
         for k in self.fields.keys():
-            setattr(self, k, row[k])
+            if k != "date":
+                setattr(self, k, row[k])
+        # self.date = datetime.datetime.strftime(self.date, "%Y-%m-%d").date()
         self._data = self._data[self._data["date"] != self.date]
 
     def __load_data(self, data_path: Path) -> pd.DataFrame:
@@ -104,7 +125,7 @@ class Model:
                 raise ValueError(msg)
         return df
 
-    def change_date(self, date: datetime.date) -> None:
+    def __change_date(self, date: datetime.date) -> None:
         """Changes the date and sets the initial values to the  row from this date if exists.
         Args:
             `date` (datetime.date): Date to change to.
@@ -114,6 +135,15 @@ class Model:
             f"Changing date to {date}. All fields will be set to the last row from this date or default"
         )
         self.__set_initial_values()
+
+    def go_to_next_day(self) -> datetime.date:
+        """Changes the date to the next day and sets the initial values to the  row from this date if exists."""
+        self.__change_date(self.date + datetime.timedelta(days=1))
+        return self.date
+
+    def go_to_previous_day(self) -> datetime.date:
+        self.__change_date(self.date - datetime.timedelta(days=1))
+        return self.date
 
     def __str__(self) -> str:
         return "\n".join(f"{k:<15}: {v}" for k, v in self.fields.items())

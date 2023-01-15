@@ -50,5 +50,5 @@ class TestModel:
         )
         model.save()
         model2 = Model(_data_path=self.data_path)
-        model2.change_date(datetime.date(2020, 1, 2))
+        model2.__change_date(datetime.date(2020, 1, 2))
         assert model2.mc_donalds == 10
