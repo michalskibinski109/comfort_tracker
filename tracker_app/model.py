@@ -42,32 +42,36 @@ class Model:
         `__str__`: Returns representation of the model.
     """
 
-    _logger: Logger = get_logger("Model", lvl=10)
+    _logger: Logger = get_logger("Model", lvl=10, disable_existing_loggers=True)
     _data_path: Path = Path("comfort_data.csv")
     _data: pd.DataFrame = None
     date: datetime.date = datetime.datetime.now().date()
     work_time: int = 0
     study_time: int = 0
     sleep_time: float = 0
-    mc_donalds: int = 0
+    chess_tasks: bool = False
+    code_tasks: bool = False
+    mc_donalds: int = -1
     gym: bool = False
-    energy_drinks: int = 0
-    bad_habits: int = 0
+    energy_drinks: int = -1
+    bad_habits: int = -1
     overall_score: int = 0
 
     def __post_init__(self):
         self._data = self.__load_data(self._data_path)
         self.__set_initial_values()
 
-    def __reset_values(self) -> None:
+    def reset_values(self) -> None:
         """temporary solution"""
         self.work_time = 0
         self.study_time = 0
         self.sleep_time = 0
-        self.mc_donalds = 0
+        self.mc_donalds = -1
         self.gym = False
-        self.energy_drinks = 0
-        self.bad_habits = 0
+        self.chess_tasks: bool = False
+        self.code_tasks: bool = False
+        self.energy_drinks = -1
+        self.bad_habits = -1
         self.overall_score = 0
 
     def save(self) -> None:
@@ -94,21 +98,19 @@ class Model:
     def __set_initial_values(self) -> None:
         try:
             row = (
-                self._data[self._data["date"] == str(self.date)]
+                self._data[self._data["date"] == self.date]
                 .reset_index(drop=True)
                 .iloc[-1]
             )
         except IndexError:
-            self._logger.warning("No rows from today. Setting initial values.")
-            self.__reset_values()
+            self._logger.info("No rows from today. Setting initial values.")
+            self.reset_values()
             # reset values to 0
             return
         self._logger.warning("Last row is from today. Setting initial values.")
         for k in self.fields.keys():
             if k != "date":
                 setattr(self, k, row[k])
-        # self.date = datetime.datetime.strftime(self.date, "%Y-%m-%d").date()
-        self._data = self._data[self._data["date"] != self.date]
 
     def __load_data(self, data_path: Path) -> pd.DataFrame:
         if not data_path.exists():
@@ -119,6 +121,8 @@ class Model:
         else:
             self._logger.debug(f"File {data_path} exists. Loading it.")
             df = pd.read_csv(data_path)
+            # set dtype of date to date
+            df["date"] = pd.to_datetime(df["date"]).dt.date
             if tuple(map(str, self.fields.keys())) != tuple(df.columns):
                 msg = f"File {data_path} has different columns than expected. Expected: \n{list(self.fields.keys())}\nGOT: \n{list(df.columns)}"
                 self._logger.error(msg)
