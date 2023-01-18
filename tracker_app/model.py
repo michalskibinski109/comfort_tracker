@@ -51,6 +51,7 @@ class Model:
     sleep_time: float = 0
     chess_tasks: bool = False
     code_tasks: bool = False
+    party: bool = False
     mc_donalds: int = -1
     gym: bool = False
     energy_drinks: int = -1
@@ -68,11 +69,12 @@ class Model:
         self.sleep_time = 0
         self.mc_donalds = -1
         self.gym = False
-        self.chess_tasks: bool = False
-        self.code_tasks: bool = False
+        self.chess_tasks = False
+        self.code_tasks = False
         self.energy_drinks = -1
         self.bad_habits = -1
         self.overall_score = 0
+        self.party = False
 
     def save(self) -> None:
         self.update()
@@ -81,6 +83,7 @@ class Model:
 
     def update(self) -> None:
         self._data = self._data[self._data["date"] != self.date]
+        # sort by date
         self._data = pd.concat(
             [
                 self._data,
@@ -88,6 +91,7 @@ class Model:
             ],
             ignore_index=True,
         )
+        self._data = self._data.sort_values(by="date")
 
     @property
     def fields(self) -> dict:
