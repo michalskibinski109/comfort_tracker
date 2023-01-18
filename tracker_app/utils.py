@@ -10,6 +10,7 @@ class Colors(Enum):
     EXTRA2 = "#F4F1DE"
     LIGHT_PRIMARY = "#E6CE8D"
     DEBUG = "#338393"
+    WHITE = "#FFFFFF"
 
 
 class Config(BaseModel):
