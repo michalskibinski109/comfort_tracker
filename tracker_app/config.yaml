@@ -1,0 +1,3 @@
+logger_lvl: DEBUG
+logger_format: "%(levelname)-8s:: %(asctime)-9s:: %(message)s (%(filename)s:%(lineno)d)"
+csv_file_name: "comfort_data.csv"

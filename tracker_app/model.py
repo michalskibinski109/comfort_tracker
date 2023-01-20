@@ -1,4 +1,3 @@
-from miskibin import get_logger
 import datetime
 import pandas as pd
 from pathlib import Path
@@ -11,6 +10,21 @@ TODO
 2. Add github actions for testing.
 """
 
+FIELDS = {
+    "date": ("datetime64", datetime.datetime.now().date()),
+    "work_time": ("float", 0.0),
+    "study_time": ("float", 0.0),
+    "sleep_time": ("float", 0.0),
+    "chess_tasks": ("bool", False),
+    "code_tasks": ("bool", False),
+    "party": ("bool", False),
+    "mc_donalds": ("int", -1),
+    "gym": ("bool", False),
+    "energy_drinks": ("int", -1),
+    "bad_habits": ("int", -1),
+    "overall_score": ("int", 0),
+}
+
 
 @dataclass
 class Model:
@@ -22,15 +36,6 @@ class Model:
     (For now works only for the fields that are set in the init method.)
 
     Args:
-        `date` (str): Date of the entry. DO NOT SET IT MANUALLY. It will be set automatically.
-        `work_time` (int): Time spent working in hours.
-        `study_time` (int): Time spent studying in hours.
-        `sleep_time` (float): Time spent sleeping in hours.
-        `mc_donalds` (int): Number of mc donalds eaten.
-        `gym` (bool): Whether the gym was visited.
-        `energy_drinks` (int): Number of energy drinks consumed.
-        `bad_habits` (int): Everyone can define their own bad habits. It could be smoking, drinking, watching porn, etc.
-        `overall_score` (int): How was the day overall? 1 is bad, 5 is good.
         `_data_path` (private attribute): Path to the data file. If it does not exist, it will be created.
         `_logger` (private attribute): Logger for this class.
         `_data` (private attribute): Data loaded from the data file. It is a private attribute.
@@ -42,39 +47,23 @@ class Model:
         `__str__`: Returns representation of the model.
     """
 
-    _logger: Logger = get_logger("Model", lvl=10, disable_existing_loggers=True)
+    _logger: Logger = None
     _data_path: Path = Path("comfort_data.csv")
     _data: pd.DataFrame = None
-    date: datetime.date = datetime.datetime.now().date()
-    work_time: int = 0
-    study_time: int = 0
-    sleep_time: float = 0
-    chess_tasks: bool = False
-    code_tasks: bool = False
-    party: bool = False
-    mc_donalds: int = -1
-    gym: bool = False
-    energy_drinks: int = -1
-    bad_habits: int = -1
-    overall_score: int = 0
 
     def __post_init__(self):
+        global FIELDS
+        # set fields as class attributes
+        self.set_default_values(True)
+
         self._data = self.__load_data(self._data_path)
         self.__set_initial_values()
 
-    def reset_values(self) -> None:
-        """temporary solution"""
-        self.work_time = 0
-        self.study_time = 0
-        self.sleep_time = 0
-        self.mc_donalds = -1
-        self.gym = False
-        self.chess_tasks = False
-        self.code_tasks = False
-        self.energy_drinks = -1
-        self.bad_habits = -1
-        self.overall_score = 0
-        self.party = False
+    def set_default_values(self, with_date=False) -> None:
+        global FIELDS
+        for field, (field_type, default_value) in FIELDS.items():
+            if field != "date" or with_date:
+                self.__setattr__(field, default_value)
 
     def save(self) -> None:
         self.update()
@@ -91,13 +80,26 @@ class Model:
             ],
             ignore_index=True,
         )
+        # set types for each column
+        self.__validate_fields()
+        self._data["date"] = pd.to_datetime(self._data["date"]).dt.date
         self._data = self._data.sort_values(by="date")
 
     @property
     def fields(self) -> dict:
         fields = {k: v for k, v in self.__dict__.items() if not k.startswith("_")}
-
         return fields
+
+    def __validate_fields(self) -> bool:
+        global FIELDS
+        for field, (field_type, default_value) in FIELDS.items():
+            try:
+                self._data[field] = self._data[field].astype(field_type)
+            except ValueError as exc:
+                self._logger.error(
+                    f"Invalid value for {field}. Should be {field_type}. "
+                )
+                raise exc
 
     def __set_initial_values(self) -> None:
         try:
@@ -107,11 +109,13 @@ class Model:
                 .iloc[-1]
             )
         except IndexError:
-            self._logger.info("No rows from today. Setting initial values.")
-            self.reset_values()
+            self._logger.info(f"No data from {self.date}. Setting initial values.")
+            self.set_default_values()
             # reset values to 0
             return
-        self._logger.warning("Last row is from today. Setting initial values.")
+        self._logger.info(
+            f"Found row with data from {self.date} . Setting initial values."
+        )
         for k in self.fields.keys():
             if k != "date":
                 setattr(self, k, row[k])
@@ -138,11 +142,12 @@ class Model:
         Args:
             `date` (datetime.date): Date to change to.
         """
-        self.date = date
-        self._logger.info(
-            f"Changing date to {date}. All fields will be set to the last row from this date or default"
+        self._logger.debug(
+            f"Changing date to {date} ({type(date)}). Setting initial values."
         )
+        self.date = datetime.datetime.strptime(str(date), "%Y-%m-%d").date()
         self.__set_initial_values()
+        # make sure that the date is a datetime.date
 
     def go_to_next_day(self) -> datetime.date:
         """Changes the date to the next day and sets the initial values to the  row from this date if exists."""

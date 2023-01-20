@@ -1,0 +1,7 @@
+flet 
+miskibin
+matplotlib
+pandas
+seaborn
+pyyaml
+pyinstaller

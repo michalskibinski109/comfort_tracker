@@ -1,16 +1,18 @@
-from flet import Column, Page, UserControl, LinearGradient
+from flet import Column, UserControl
 from utils import CONFIG, Colors
 import flet as ft
 from model import Model
 from datetime import datetime
 from controller import Controller
+from logging import Logger
 
 SAVED = False
 
 
 class MainView(UserControl):
-    def __init__(self, model: Model, controller: Controller):
+    def __init__(self, model: Model, controller: Controller, logger: Logger):
         super().__init__()
+        self.logger = logger
         self.model = model
         self.controller = controller
 
@@ -266,10 +268,10 @@ class MainView(UserControl):
             self.work_time_field.value if self.work_time_field.value else 0
         )
         self.model.study_time = (
-            self.study_time_field.value if self.work_time_field.value else 0
+            self.study_time_field.value if self.study_time_field.value else 0
         )
         self.model.sleep_time = (
-            self.sleep_time_field.value if self.work_time_field.value else 0
+            self.sleep_time_field.value if self.sleep_time_field.value else 0
         )
         self.controller.save_data()
         SAVED = True
@@ -331,5 +333,5 @@ class MainView(UserControl):
     def update_all(self, event: ft.Event):
         page = event.page
         page.controls.pop()
-        page.controls.append(MainView(self.model, self.controller))
+        page.controls.append(MainView(self.model, self.controller, self.logger))
         page.update()

@@ -1,6 +1,5 @@
 from enum import Enum
-from pydantic import BaseModel
-
+from dataclasses import dataclass
 
 class Colors(Enum):
     PRIMARY = "#F2CC8F"
@@ -12,8 +11,8 @@ class Colors(Enum):
     DEBUG = "#338393"
     WHITE = "#FFFFFF"
 
-
-class Config(BaseModel):
+@dataclass
+class Config:
     window_width: int = 900
     window_height: int = 600
     date: str = "2021-01-01"
