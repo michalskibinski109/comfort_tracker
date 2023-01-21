@@ -2,11 +2,19 @@ from flet import Column, UserControl
 from utils import CONFIG, Colors
 import flet as ft
 from model import Model
-from datetime import datetime
+from datetime import datetime, date
 from controller import Controller
 from logging import Logger
+import numpy as np
 
 SAVED = False
+
+ICONS = {
+    "gym": ft.icons.FITNESS_CENTER,
+    "code_tasks": ft.icons.CODE,
+    "fast_food": ft.icons.EGG_ALT_OUTLINED,
+    "chess_tasks": ft.icons.CHURCH_OUTLINED,
+}
 
 
 class MainView(UserControl):
@@ -15,6 +23,34 @@ class MainView(UserControl):
         self.logger = logger
         self.model = model
         self.controller = controller
+        self.text_fields = []
+        self.tiles = []
+        self.radios = []
+        self.slider = None
+        self.field_map = {}
+        self.__create_components()
+
+    def __create_components(self):
+        for k, v in self.model.fields.items():
+            label = k.replace("_", " ").title()
+            self.field_map[label] = k
+            if k == "overall_score":
+                self.slider = self._slider(v)
+            elif isinstance(v, np.bool_):
+                icon = ICONS.get(k, ft.icons.NOT_STARTED_SHARP)
+                self.tiles.append(
+                    self.tile(
+                        label,
+                        icon,
+                        v,
+                    )
+                )
+            elif isinstance(v, np.int8):
+                self.radios.append(self.radio_group(label, str(v)))
+            elif isinstance(v, np.float16):
+                self.text_fields.append(self.text_field(label, str(v)))
+            elif not isinstance(v, date):
+                self.logger.error(f"Invalid type of field {k}: {type(v)}")
 
     def input_fields_container(self, content=None):
         return ft.Container(
@@ -67,7 +103,7 @@ class MainView(UserControl):
     def text_field(self, label: str, value: str):
         return ft.TextField(
             label=label,
-            value=value if value != 0 else None,
+            value=value if float(value) != 0 else None,
             color=Colors.EXTRA2.value,
             border_color=Colors.EXTRA2.value,
             cursor_color=Colors.EXTRA2.value,
@@ -82,7 +118,7 @@ class MainView(UserControl):
             e.control.bgcolor = Colors.THIRD.value
         e.control.update()
 
-    def tile(self, label: str, icon: ft.Icon, value: int = 0):
+    def tile(self, label: str, icon: ft.Icon, value: int = 0) -> ft.Container:
         return ft.Container(
             aspect_ratio=1,
             expand=False,
@@ -114,52 +150,35 @@ class MainView(UserControl):
         self.work_time_field = self.text_field("work hours", self.model.work_time)
         self.study_time_field = self.text_field("study hours", self.model.study_time)
         self.sleep_time_field = self.text_field("sleep hours", self.model.sleep_time)
-        self.mc_donalds_radio = self.radio_group(
-            "mc_donalds", value=self.model.mc_donalds
-        )
+        self.alcohol = self.radio_group("alcohol", value=self.model.alcohol)
         self.bad_habbits_radio = self.radio_group(
             "bad habbits", value=self.model.bad_habits
         )
         self.energy_drinks_radio = self.radio_group(
-            "red bulls", value=self.model.energy_drinks
+            "energy drinks", value=self.model.energy_drinks
         )
         self.gym_tile = self.tile("Gym", ft.icons.FITNESS_CENTER, self.model.gym)
-        self.chess_tile = self.tile("Chess", ft.icons.CHURCH, self.model.chess_tasks)
+        self.chess_tile = self.tile(
+            "Chess tasks", ft.icons.CHURCH, self.model.chess_tasks
+        )
         self.code_tile = self.tile("Code task", ft.icons.CODE, self.model.code_tasks)
-        self.party_tile = self.tile("Party", ft.icons.NO_DRINKS, self.model.party)
+        self.fast_food = self.tile("Fast food", ft.icons.EGG_ALT, self.model.fast_food)
 
         return ft.Row(
             controls=[
                 self.input_fields_container(
                     ft.Column(
-                        [
-                            self.work_time_field,
-                            self.study_time_field,
-                            self.sleep_time_field,
-                        ],
+                        self.text_fields,
                         alignment="spaceAround",
                     )
                 ),
                 self.input_fields_container(
                     ft.Column(
-                        [
-                            self.mc_donalds_radio,
-                            self.bad_habbits_radio,
-                            self.energy_drinks_radio,
-                        ],
+                        self.radios,
                         alignment="center",
                     ),
                 ),
-                self.input_fields_container(
-                    ft.ResponsiveRow(
-                        [
-                            self.gym_tile,
-                            self.chess_tile,
-                            self.code_tile,
-                            self.party_tile,
-                        ],
-                    )
-                ),
+                self.input_fields_container(ft.ResponsiveRow(self.tiles)),
             ],
             alignment="spaceAround",
         )
@@ -257,23 +276,22 @@ class MainView(UserControl):
 
     def _on_save_click(self, e):
         global SAVED
-        self.model.bad_habits = self.bad_habbits_radio.controls[1].value
-        self.model.energy_drinks = self.energy_drinks_radio.controls[1].value
-        self.model.mc_donalds = self.mc_donalds_radio.controls[1].value
-        self.model.chess_tasks = self.chess_tile.data
-        self.model.code_tasks = self.code_tile.data
-        self.model.gym = self.gym_tile.data
-        self.model.party = self.party_tile.data
-        self.model.work_time = (
-            self.work_time_field.value if self.work_time_field.value else 0
-        )
-        self.model.study_time = (
-            self.study_time_field.value if self.study_time_field.value else 0
-        )
-        self.model.sleep_time = (
-            self.sleep_time_field.value if self.sleep_time_field.value else 0
-        )
-        self.controller.save_data()
+        dict_data = {}
+        for tile in self.tiles:
+            name = tile.content.controls[0].value
+            key = self.field_map[name]
+            dict_data[key] = tile.data
+        for field in self.text_fields:
+            value = field.value
+            key = self.field_map[field.label]
+            dict_data[key] = value
+        for radio in self.radios:
+            value = radio.controls[1].value
+            key = self.field_map[radio.controls[0].value]
+            dict_data[key] = value
+        dict_data["overall_score"] = self.slider.value
+        self.logger.info(f"Saving data: {dict_data}")
+        self.controller.save_data(dict_data)
         SAVED = True
         self.update_all(e)
 
@@ -283,19 +301,21 @@ class MainView(UserControl):
         SAVED = False
         self.update_all(e)
 
-    @property
-    def slider_container(self):
-        self.slider = ft.Slider(
+    def _slider(self, value):
+        return ft.Slider(
             thumb_color=Colors.EXTRA.value,
             active_color=Colors.EXTRA.value,
             inactive_color=Colors.EXTRA2.value,
             min=0,
             max=5,
             divisions=5,
-            value=float(self.model.overall_score),
+            value=float(value),
             on_change=self._on_slider_change,
             label="overall score: {value}",
         )
+
+    @property
+    def slider_container(self):
         return ft.Container(
             alignment=ft.alignment.center,
             content=ft.Column(

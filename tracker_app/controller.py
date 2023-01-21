@@ -11,5 +11,6 @@ class Controller:
         self.logger.info("Resetting values")
         self.model.set_default_values()
 
-    def save_data(self):
+    def save_data(self, data: dict) -> None:
+        self.model.set_values(data)
         self.model.save()

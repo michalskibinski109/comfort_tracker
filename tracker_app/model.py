@@ -3,6 +3,7 @@ import pandas as pd
 from pathlib import Path
 from dataclasses import dataclass
 from logging import Logger
+import numpy as np
 
 """
 TODO 
@@ -12,17 +13,17 @@ TODO
 
 FIELDS = {
     "date": ("datetime64", datetime.datetime.now().date()),
-    "work_time": ("float", 0.0),
-    "study_time": ("float", 0.0),
-    "sleep_time": ("float", 0.0),
-    "chess_tasks": ("bool", False),
-    "code_tasks": ("bool", False),
-    "party": ("bool", False),
-    "mc_donalds": ("int", -1),
-    "gym": ("bool", False),
-    "energy_drinks": ("int", -1),
-    "bad_habits": ("int", -1),
-    "overall_score": ("int", 0),
+    "work_time": (np.float16, 0.0),
+    "study_time": (np.float16, 0.0),
+    "sleep_time": (np.float16, 0.0),
+    "chess_tasks": (np.bool_, False),
+    "code_tasks": (np.bool_, False),
+    "fast_food": (np.bool_, False),
+    "gym": (np.bool_, False),
+    "alcohol": (np.int8, -1),
+    "energy_drinks": (np.int8, -1),
+    "bad_habits": (np.int8, -1),
+    "overall_score": (np.int8, 0),
 }
 
 
@@ -54,16 +55,25 @@ class Model:
     def __post_init__(self):
         global FIELDS
         # set fields as class attributes
-        self.set_default_values(True)
-
+        self.set_default_values()
+        self.__setattr__("date", datetime.datetime.now().date())
         self._data = self.__load_data(self._data_path)
         self.__set_initial_values()
 
-    def set_default_values(self, with_date=False) -> None:
+    def set_default_values(self) -> None:
         global FIELDS
         for field, (field_type, default_value) in FIELDS.items():
-            if field != "date" or with_date:
-                self.__setattr__(field, default_value)
+            if field != "date":
+                v = field_type(default_value)
+                self.__setattr__(field, v)
+
+    def set_values(self, data: dict) -> None:
+        for k, v in data.items():
+            try:
+                v = FIELDS[k][0](v)
+            except ValueError:
+                v = FIELDS[k][1]
+            self.__setattr__(k, v)
 
     def save(self) -> None:
         self.update()
@@ -118,6 +128,7 @@ class Model:
         )
         for k in self.fields.keys():
             if k != "date":
+                row[k] = FIELDS[k][0](row[k])
                 setattr(self, k, row[k])
 
     def __load_data(self, data_path: Path) -> pd.DataFrame:

@@ -24,7 +24,10 @@ def init_page(page: Page):
 
 def main(page: Page):
     file_name = datetime.now().strftime("%Y-%m-%d_%H")
-    log_path = Path(__file__).parent / "logs" / f"{file_name}.log"
+    log_dir = Path(__file__).parent / "logs"
+    # create log dir if not exists
+    log_dir.mkdir(exist_ok=True)
+    log_path = log_dir / f"{file_name}.log"
     logger = get_logger(
         lvl=10,
         file_name=log_path,

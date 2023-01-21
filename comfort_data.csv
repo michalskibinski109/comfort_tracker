@@ -1,7 +1,2 @@
-date,work_time,study_time,sleep_time,chess_tasks,code_tasks,party,mc_donalds,gym,energy_drinks,bad_habits,overall_score
-2023-01-16,0.0,0.0,3.0,False,False,False,-1,False,-1,-1,0
-2023-01-17,1.0,1.0,0.0,False,False,False,-1,False,-1,-1,0
-2023-01-18,0.0,34.0,4.0,False,True,True,1,True,1,2,3
-2023-01-19,6.0,7.0,2.0,False,False,False,-1,False,-1,-1,2
-2023-01-20,0.0,3.0,0.0,False,False,False,-1,False,-1,-1,2
-2023-01-21,0.0,1.0,0.0,False,False,False,-1,False,-1,-1,0
+work_time,study_time,sleep_time,chess_tasks,code_tasks,fast_food,gym,alcohol,energy_drinks,bad_habits,overall_score,date
+3.0,4.0,8.0,False,True,False,False,0,1,1,4,2023-01-21
